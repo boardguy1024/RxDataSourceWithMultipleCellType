@@ -7,19 +7,50 @@
 //
 
 import UIKit
+import RxSwift
+import RxCocoa
 
 class ViewController: UIViewController {
 
+    let bag = DisposeBag()
+    
+    @IBOutlet weak var tableView: UITableView!
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        bindTableView()
     }
-
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    
+    func bindTableView() {
+        let cities = Observable.of(["Lisbon","Seoul","London","Tokyo"])
+        
+        cities
+            .bind(to: tableView.rx.items) { tableView, index, element in
+                
+                let cell = UITableViewCell(style: .default, reuseIdentifier: "cell")
+                cell.textLabel?.text = element
+                return cell
+            }
+            .disposed(by: bag)
+        
+        tableView.rx.modelSelected(String.self)
+            .subscribe(onNext: { model in
+                print("\(model) was selected!")
+            })
+            .disposed(by: bag)
+        
+        tableView.rx.willDisplayCell.asObservable()
+            .subscribe(onNext: {
+                print("willDisplayCell : \($0)")
+            })
+            .disposed(by: bag)
+        
+        tableView.rx.didEndDisplayingCell.asObservable()
+            .subscribe(onNext: {
+                print("didEndDisplayCell :\($0)")
+            })
+            .disposed(by: bag)
     }
-
 
 }
 
