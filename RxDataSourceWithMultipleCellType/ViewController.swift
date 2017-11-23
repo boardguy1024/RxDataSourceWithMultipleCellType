@@ -11,27 +11,58 @@ import RxSwift
 import RxCocoa
 
 class ViewController: UIViewController {
-
-    let bag = DisposeBag()
     
+    enum MyModel {
+        case textEntry(String)
+        case imageEntry(UIImage)
+    }
+    
+    //本来ならViewModelに追加すべき
+    //ダミーMyModelタイプの値
+    let observableItems: Observable<[MyModel]> = Observable.of([.textEntry("Paris"),
+                                                           .imageEntry(#imageLiteral(resourceName: "p1")),
+                                                           .textEntry("London"),
+                                                           .imageEntry(#imageLiteral(resourceName: "l1"))])
+    
+    let bag = DisposeBag()
+
     @IBOutlet weak var tableView: UITableView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        registerCells()
         bindTableView()
     }
     
-    func bindTableView() {
-        let cities = Observable.of(["Lisbon","Seoul","London","Tokyo"])
+    func registerCells() {
         
-        cities
+        //titleセル登録
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "titleCell")
+        //imageセル登録
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "imageCell")
+    }
+    
+    func bindTableView() {
+        
+        //MyModelタイプのItemsを -> tableView.rx.itemとバインド
+        observableItems
             .bind(to: tableView.rx.items) { tableView, index, element in
-                
-                let cell = UITableViewCell(style: .default, reuseIdentifier: "cell")
-                cell.textLabel?.text = element
+            
+            let indexPath = IndexPath(item: index, section: 0)
+            
+            // ここで 渡ってきた値のタイプによってセル表示を出し分ける
+            switch element {
+            case .textEntry(let title):
+                let cell = tableView.dequeueReusableCell(withIdentifier: "titleCell", for: indexPath)
+                cell.textLabel?.text = title
+                return cell
+            case .imageEntry(let image):
+                let cell = tableView.dequeueReusableCell(withIdentifier: "imageCell", for: indexPath)
+                cell.imageView?.image = image
                 return cell
             }
-            .disposed(by: bag)
+        }
+        .disposed(by: bag)
         
         tableView.rx.modelSelected(String.self)
             .subscribe(onNext: { model in
